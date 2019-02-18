@@ -1,3 +1,19 @@
-# Office temp-files
-~$*.*
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+[Bb]in/
+[Oo]bj/
 
+# Visual Studio cache/options directory
+.vs/
+
+*.pdsprj*workspace
+*.pdsbak
+*.zip
+*.txt
+
+/stdiodemo
+*_old/
+*-old/

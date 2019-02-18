@@ -16,13 +16,14 @@
 
 #define OnTime 3600 //s
 
-
 uint16_t t_ms;
 uint16_t t_sec;
 
 uint8_t latest_pin;
 int main(void)
 {
+	ADCSRA = 0; //disable ADC for lower power
+
 	TCCR0B=(0<<WGM02) | (0<<CS02) | (1<<CS01) | (1<<CS00);
 	TCNT0=0x6A;
 	TIMSK0=(0<<OCIE0B) | (0<<OCIE0A) | (1<<TOIE0);
@@ -41,7 +42,7 @@ int main(void)
 		io_setPort(IO_OutLed);
 		delay_ms(1);
 		pin = io_getPin(IO_InLed);
-		if (pin != latest_pin){ //todo wait for 500ms
+		if (pin != latest_pin){ 
 			if (pin) {
 				t_ms = 0;
 				t_sec = 0;
@@ -49,7 +50,7 @@ int main(void)
 			} else {
 				io_resetPort(IO_OutFan);
 			}
-				
+			delay_ms(100);
 		}
 		io_resetPort(IO_OutLed);
 		delay_ms(1);

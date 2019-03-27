@@ -28,13 +28,6 @@ uint8_t latest_pin;
 #define USOFT_IO_TX B, 1
 #define USOFT_RXEN 0
 #include <uart_soft.h>
-void _puts(char *str)
-{
-	#if DEBUG
-	usoft_putString((unsigned char *)str);
-	usoft_putCharf(0x0D);
-	#endif
-}
 #endif
 
 #define REF_AVCC (0<<REFS0) // reference = AVCC
@@ -79,76 +72,53 @@ int main(void)
 	
 	#if DEBUG
 	usoft_init();
-	_puts("start");
+	usoft_putStringf("start");
+	usoft_putCharf(0x0D);
 	
-	for (int i=0;i<3;++i){
+	for (int i=0; i<3; ++i){
 		io_setPort(IO_OutFan); delay_ms(300);
 		io_resetPort(IO_OutFan); delay_ms(300);
 	}
+	#endif
 	
-	while(1)
-	{
-		io_setPort(IO_OutLed);
-		_delay_ms(1);
-		int adcMesure = read_adc(IO_ADC_InLed); //todo calc+time
-		io_resetPort(IO_OutLed);
-		
-		if (adcMesure > AdcOnValue)
-		{
-			io_setPort(IO_OutFan);
-		}
-		else
-		{
-			io_resetPort(IO_OutFan);
-		}
-		
-		usoft_putString("adc:");
-
-		int at = adcMesure / 1000;
-		usoft_putChar(48 + at);
-		adcMesure = adcMesure - at * 1000;
-		
-		at = adcMesure /100;
-		usoft_putChar(48 + at);
-		adcMesure = adcMesure - at * 100;
-		
-		at = adcMesure /10;
-		usoft_putChar(48 + at);
-		adcMesure = adcMesure - at * 10;
-
-		usoft_putChar(48 + adcMesure);
-		usoft_putChar(0x0D);
-		
-		delay_ms(500);
-	}
-	#else
 	bool isFanOn = false;
 	while (1)
 	{
+		#ifndef DEBUG
 		wdt_reset();
 		wdt_enable(WDTO_250MS);
+		#endif
 		
 		io_setPort(IO_OutLed);
 		delay_ms(1);
 		int adcMesure = read_adc(IO_ADC_InLed); //todo calc+time
 		io_resetPort(IO_OutLed);
 		
-		if (!isFanOn && adcMesure > AdcOnValue) 
+		if (adcMesure > AdcOnValue)
 		{
-			isFanOn = true;
-			t_ms = 0;
-			t_sec = 0;
+			if (!isFanOn)
+			{
+				t_ms = 0;
+				t_sec = 0;
+				isFanOn = true;
+			}
 			io_setPort(IO_OutFan);
-			delay_ms(100);
+			//delay_ms(100);
 		}
 		else
 		{
 			io_resetPort(IO_OutFan);
 			isFanOn = false;
 		}
+		
+		#if DEBUG
+		usoft_putStringf("adc:");
+		usoft_putUInt(adcMesure);
+		delay_ms(500);
+		#endif
+		
 		delay_ms(1);
 	}
-	#endif
 }
 
 #ifndef DEBUG

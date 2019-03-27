@@ -17,3 +17,5 @@
 /stdiodemo
 *_old/
 *-old/
+
+*.TMP

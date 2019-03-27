@@ -15,12 +15,18 @@
 #define IO_ADC_InLed 1 //portb.2 adc1
 #define IO_OutFan B, 4
 
-#define OnTime 3600 //s
-#define AdcOnValue 640 //adc-discrets 0...1024
+#define OnTime 3600 //time-work for fan in sec
+#define AdcOnValue 640 //adc-discrets 0...1024 (when fan should work)
 
-uint16_t t_ms;
-uint16_t t_sec;
+void wdt_restart()
+{
+	#ifndef DEBUG
+	wdt_reset();
+	wdt_enable(WDTO_250MS);
+	#endif
+}
 
+uint16_t t_ms, t_sec;
 uint8_t latest_pin;
 
 #if DEBUG
@@ -84,14 +90,20 @@ int main(void)
 	bool isFanOn = false;
 	while (1)
 	{
-		#ifndef DEBUG
-		wdt_reset();
-		wdt_enable(WDTO_250MS);
-		#endif
+		wdt_restart();
 		
 		io_setPort(IO_OutLed);
 		delay_ms(1);
-		int adcMesure = read_adc(IO_ADC_InLed); //todo calc+time
+		
+		int adcMesure = 0;
+		const int adcCount = 5;
+		for (uint8_t i = 0; i < adcCount; ++i)
+		{
+			_delay_us(100);
+			adcMesure += read_adc(IO_ADC_InLed);
+		}
+		adcMesure = adcMesure/adcCount;
+		
 		io_resetPort(IO_OutLed);
 		
 		if (adcMesure > AdcOnValue)
@@ -101,9 +113,8 @@ int main(void)
 				t_ms = 0;
 				t_sec = 0;
 				isFanOn = true;
+				io_setPort(IO_OutFan);
 			}
-			io_setPort(IO_OutFan);
-			//delay_ms(100);
 		}
 		else
 		{
@@ -114,10 +125,13 @@ int main(void)
 		#if DEBUG
 		usoft_putStringf("adc:");
 		usoft_putUInt(adcMesure);
-		delay_ms(500);
 		#endif
 		
-		delay_ms(1);
+		for (uint8_t i = 0; i< 5; ++i) //delay 500 ms between cycles
+		{
+			wdt_restart();
+			delay_ms(100);
+		}
 	}
 }
 

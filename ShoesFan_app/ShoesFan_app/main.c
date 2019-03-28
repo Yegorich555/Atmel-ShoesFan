@@ -18,8 +18,8 @@
 
 #define OnTime 3600 //time-work for fan in sec
 
-static uint16_t EEMEM _e_adcOnValue = 640; //storing in EEPROM
-static uint16_t adcOnValue = 640;  //adc-discrets 0...1024 (when fan should work)
+static uint16_t EEMEM _e_adcOnValue = 11; //storing in EEPROM
+uint16_t adcOnValue = 640;  //adc-discrets 0...1024 (when fan should work)
 
 void wdt_restart()
 {
@@ -29,8 +29,7 @@ void wdt_restart()
 	#endif
 }
 
-uint16_t t_ms, t_sec;
-uint8_t latest_pin;
+volatile uint16_t t_ms, t_sec;
 
 #if DEBUG
 #define USOFT_BAUD 4800
@@ -122,11 +121,17 @@ int main(void)
 				t_sec = 0;
 				isFanOn = true;
 				io_setPort(IO_OutFan);
+				#if DEBUG
+				usoft_putStringf("ON\n");
+				#endif
 			}
 		}
 		else
 		{
 			io_resetPort(IO_OutFan);
+			#if DEBUG
+			usoft_putStringf("OFF\n");
+			#endif
 			isFanOn = false;
 		}
 		

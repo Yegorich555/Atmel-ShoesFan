@@ -12,7 +12,6 @@
 #include <avr/eeprom.h>
 
 #define IO_OutLed B, 0
-#define IO_InLed B, 2
 #define IO_ADC_InLed 1 //portb.2 adc1
 #define IO_OutFan B, 4
 

@@ -9,6 +9,7 @@
 #include <avr/io.h>
 #include <extensions.h>
 #include <avr/wdt.h>
+#include <avr/eeprom.h>
 
 #define IO_OutLed B, 0
 #define IO_InLed B, 2
@@ -16,7 +17,9 @@
 #define IO_OutFan B, 4
 
 #define OnTime 3600 //time-work for fan in sec
-#define AdcOnValue 640 //adc-discrets 0...1024 (when fan should work)
+
+static uint16_t EEMEM _e_adcOnValue = 640; //storing in EEPROM
+static uint16_t adcOnValue = 640;  //adc-discrets 0...1024 (when fan should work)
 
 void wdt_restart()
 {
@@ -76,9 +79,14 @@ int main(void)
 	
 	asm_sei();
 	
+	uint16_t v = eeprom_read_word(&_e_adcOnValue);
+	if (v != 0xFFFF) adcOnValue = v;
+	
 	#if DEBUG
+	delay_ms(1000);
 	usoft_init();
-	usoft_putStringf("start");
+	usoft_putStringf("start:");
+	usoft_putUInt(adcOnValue);
 	usoft_putCharf(0x0D);
 	
 	for (int i=0; i<3; ++i){
@@ -106,7 +114,7 @@ int main(void)
 		
 		io_resetPort(IO_OutLed);
 		
-		if (adcMesure > AdcOnValue)
+		if (adcMesure > adcOnValue)
 		{
 			if (!isFanOn)
 			{
@@ -125,6 +133,7 @@ int main(void)
 		#if DEBUG
 		usoft_putStringf("adc:");
 		usoft_putUInt(adcMesure);
+		usoft_putCharf(0x0D);
 		#endif
 		
 		for (uint8_t i = 0; i< 5; ++i) //delay 500 ms between cycles

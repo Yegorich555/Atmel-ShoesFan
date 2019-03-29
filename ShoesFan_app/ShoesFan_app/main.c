@@ -7,7 +7,7 @@
 
 #define F_CPU 9600000UL
 #include <avr/io.h>
-#include <extensions.h> //file from https://github.com/Yegorich555/Atmel-Library  
+#include <extensions.h> //file from https://github.com/Yegorich555/Atmel-Library
 #include <avr/wdt.h>
 #include <avr/eeprom.h>
 
@@ -17,8 +17,8 @@
 
 #define OnTime 3600 //time-work for fan in sec
 
-static uint16_t EEMEM _e_adcOnValue = 11; //storing in EEPROM
-uint16_t adcOnValue = 640;  //adc-discrets 0...1024 (when fan should work)
+static uint16_t EEMEM _e_adc_dOnValue = 10; //storing in EEPROM
+volatile uint16_t adc_dOnValue;  //difference in adc-discrets 0...1024 when fan should work
 
 void wdt_restart()
 {
@@ -77,14 +77,14 @@ int main(void)
 	
 	asm_sei();
 	
-	uint16_t v = eeprom_read_word(&_e_adcOnValue);
-	if (v != 0xFFFF) adcOnValue = v;
+	uint16_t v = eeprom_read_word(&_e_adc_dOnValue);
+	if (v != 0xFFFF) adc_dOnValue = v;
 	
 	#if DEBUG
 	delay_ms(1000);
 	usoft_init();
 	usoft_putStringf("start:");
-	usoft_putUInt(adcOnValue);
+	usoft_putUInt(adc_dOnValue);
 	usoft_putCharf(0x0D);
 	
 	for (int i=0; i<3; ++i){
@@ -93,7 +93,8 @@ int main(void)
 	}
 	#endif
 	
-	bool isFanOn = false;
+	bool isFanOn = true;
+	int adcBefore = read_adc(IO_ADC_InLed); // first reading for ADC stabilization
 	while (1)
 	{
 		wdt_restart();
@@ -109,10 +110,9 @@ int main(void)
 			adcMesure += read_adc(IO_ADC_InLed);
 		}
 		adcMesure = adcMesure/adcCount;
-		
 		io_resetPort(IO_OutLed);
-		
-		if (adcMesure > adcOnValue)
+
+		if (adcBefore > adcMesure && (adcBefore - adcMesure) > adc_dOnValue)
 		{
 			if (!isFanOn)
 			{
@@ -125,14 +125,16 @@ int main(void)
 				#endif
 			}
 		}
-		else
+		else if (adcBefore < adcMesure && (adcMesure - adcBefore) > adc_dOnValue)
 		{
 			io_resetPort(IO_OutFan);
 			#if DEBUG
-			usoft_putStringf("OFF\n");
+			if (isFanOn)
+				usoft_putStringf("OFF\n");
 			#endif
 			isFanOn = false;
 		}
+		adcBefore = adcMesure;
 		
 		#if DEBUG
 		usoft_putStringf("adc:");
